@@ -1,23 +1,19 @@
-# Fintech User Retention & Operational Bottleneck Audit
-## Executive Summary
-This project builds an automated data pipeline to analysze user lifecycle friction and transaction processing degradation for a retail financial platform. By extraacting and analyzing over 96,000 relational records froman isolated SQLite database, this audit isolates where user acquisition capital is wasted and quantifies structural revenue leakage
+# FinTech User Retention & Operational Bottleneck Data Pipeline
 
+##  Executive Summary
+This project engineers an automated end-to-end data pipeline to diagnose user lifecycle friction, onboarding degradation, and transactional system vulnerabilities for a retail financial services platform. By architecting a local relational database and deploying programmatic extraction and analysis layers, this audit isolates where user acquisition capital is wasted and quantifies structural revenue leakage.
 
-## The Core Business Bottlenecks (Identified via Data Audit)
-A baseline diagnostic check of the active database infrastructure exposed two critialoperational vulnerabilities that directly impact user lifetime value (LTV) and platform trust:
-### 1. Onboardinging funnel churn (41.06% KYC Failure rate)
-* **The Metric:** out of 5,00 unique users who created an account, **2,053 failed the Know Your Customer (KYC) verification process**.
-* **Business Impact** High marketing burn rate. The company is actively spending capital to acquire users, only for 4 out of 10 to be blocked at the front door. This indicates either an overly restrictive compliance UI or an inergration withthe third-party verification API.
+##  Phase 1: Relational Data Infrastructure & Engineering
+To simulate a live production environment, an isolated relational database layer was built from scratch.
 
-### 2. Transactional Revenue Leakage (18.06% Faliure Rate)
-* **The Metric:** Out of 96,704 total transaction attempts, **17,465 resulted in a hard faliure status**.
-* **Business Impact:** Severe retention risk andimmediate revenue loss. In financial services, transactional instability drives users to compititors instantly. This high faliure volume indicates backend processing latency or systemic API timeouts during peak traffic.
+### 1. Database Schema Architecture
+The infrastructure consists of three highly indexed tables deployed via SQLite (`data/database.sqlite`):
+* **`users` Table:** Fields include `user_id` (Primary Key), `signup_date`, and `country`. Holds the baseline cohort demographics for 5,000 synthetic profiles.
+* **`activity_logs` Table:** Fields include `log_id` (Primary Key), `user_id` (Foreign Key), `timestamp`, and `action`. Tracks user behavior (e.g., system logins, onboarding attempts).
+* **`transactions` Table:** Fields include `tx_id` (Primary Key), `user_id` (Foreign Key), `timestamp`, `amount`, and `status` (`Success` / `Failed`). Logs financial events.
 
-
-## Project Structure & Data inffrastructure
-The repository is organised to seperate data generation, operational diagnostics, and the analytical visualization layer:
-
-* `data/`: Conatins the relational SQLite database (`database.sqlite`) and exported analytical tables.
-* `src/generate_data.py`: Synthesizes the relational database scheme, populates 5,000 historical users, and engineers specificoperational anomalies (the KYC and transaction faliure bugs)
-* `src/pipeline.py`: Executes the automated database extraction and output core health metrics.
-* `src/cohort_analysis.py`: (in progress) Builds the programmatic cohort retention matrices.
+### 2. Engineering Constraints & Debugging
+* **Command Interception Block:** Resolved a Windows system conflict where default execution aliases hijacked the execution path, successfully routing compilation through the universal Python launcher (`py`).
+* **Database Constraint Fix:** Corrected a critical relational insert failure in `src/generate_data.py`. The initial automated pipeline attempted to load a 3-value array directly into the 4-column `activity_logs` table, triggering an operational schema mismatch. The execution logic was restructured to explicitly declare target destinations, allowing the database engine to handle autoincrementing keys natively:
+  ```python
+  cursor.executemany('INSERT INTO activity_logs (user_id, timestamp, action) VALUES (?, ?, ?)', log_data)
